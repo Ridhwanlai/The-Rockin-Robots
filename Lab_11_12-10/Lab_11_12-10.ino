@@ -144,10 +144,20 @@ bool          wfStuckFirstFired  = false;
 void setMotors(int leftCmd, int rightCmd) {
   leftCmd  = constrain(leftCmd,  -255, 255);
   rightCmd = constrain(rightCmd, -255, 255);
-  digitalWrite(PIN_LF, leftCmd  >= 0 ? LOW  : HIGH);
-  digitalWrite(PIN_LB, leftCmd  >= 0 ? HIGH : LOW);
-  digitalWrite(PIN_RF, rightCmd >= 0 ? LOW  : HIGH);
-  digitalWrite(PIN_RB, rightCmd >= 0 ? HIGH : LOW);
+  if (leftCmd >= 0) {
+    digitalWrite(PIN_LF, LOW);
+    digitalWrite(PIN_LB, HIGH);
+  } else {
+    digitalWrite(PIN_LF, HIGH);
+    digitalWrite(PIN_LB, LOW);
+  }
+  if (rightCmd >= 0) {
+    digitalWrite(PIN_RF, LOW);
+    digitalWrite(PIN_RB, HIGH);
+  } else {
+    digitalWrite(PIN_RF, HIGH);
+    digitalWrite(PIN_RB, LOW);
+  }
   analogWrite(L_PWM_PIN, abs(leftCmd));
   analogWrite(R_PWM_PIN, abs(rightCmd));
 }
@@ -163,9 +173,21 @@ void stopMotors() {
 // IR HELPERS
 // ============================================================
 void readSensors(int &L, int &M, int &R) {
-  L = IR_LEFT_INVERT   ? !digitalRead(IR_LEFT)   : digitalRead(IR_LEFT);
-  M = IR_MIDDLE_INVERT ? !digitalRead(IR_MIDDLE) : digitalRead(IR_MIDDLE);
-  R = IR_RIGHT_INVERT  ? !digitalRead(IR_RIGHT)  : digitalRead(IR_RIGHT);
+  if (IR_LEFT_INVERT) {
+    L = !digitalRead(IR_LEFT);
+  } else {
+    L = digitalRead(IR_LEFT);
+  }
+  if (IR_MIDDLE_INVERT) {
+    M = !digitalRead(IR_MIDDLE);
+  } else {
+    M = digitalRead(IR_MIDDLE);
+  }
+  if (IR_RIGHT_INVERT) {
+    R = !digitalRead(IR_RIGHT);
+  } else {
+    R = digitalRead(IR_RIGHT);
+  }
 }
 
 bool anySensorOnTape() {
@@ -227,8 +249,22 @@ void updateUltrasonics() {
 
 bool  frontValid() { return frontInit && (millis() - lastFrontOkMs <= US_HOLD_MS); }
 bool  rightValid() { return rightInit && (millis() - lastRightOkMs <= US_HOLD_MS); }
-float getFrontCm() { return frontValid() ? frontCmFilt : -1.0f; }
-float getRightCm() { return rightValid() ? rightCmFilt : -1.0f; }
+
+float getFrontCm() {
+  if (frontValid()) {
+    return frontCmFilt;
+  } else {
+    return -1.0f;
+  }
+}
+
+float getRightCm() {
+  if (rightValid()) {
+    return rightCmFilt;
+  } else {
+    return -1.0f;
+  }
+}
 
 // ============================================================
 // TRANSITION CHECK: LF → WF
@@ -511,7 +547,16 @@ void loop() {
     }
 
     Serial.print("[WF] Front=");
-    if (frontValid()) { Serial.print(f, 1); Serial.print("cm ("); Serial.print(frontNear ? "NEAR" : "FAR"); Serial.print(")"); }
+    if (frontValid()) {
+      Serial.print(f, 1);
+      Serial.print("cm (");
+      if (frontNear) {
+        Serial.print("NEAR");
+      } else {
+        Serial.print("FAR");
+      }
+      Serial.print(")");
+    }
     else Serial.print("---");
     Serial.print("  Right=");
     if (rightValid()) {
@@ -521,7 +566,11 @@ void loop() {
       else               Serial.print("IN BAND");
       Serial.print(")");
     } else Serial.print("---");
-    Serial.print(wfStuckFirstFired ? "  [STUCK-N]" : "  [STUCK-1 armed]");
+    if (wfStuckFirstFired) {
+      Serial.print("  [STUCK-N]");
+    } else {
+      Serial.print("  [STUCK-1 armed]");
+    }
     Serial.print("  -> ");
 
     if (checkWfStuck(f)) return;
