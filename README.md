@@ -1,6 +1,3 @@
-
-// out of 20 teams in the course, we placed 2nd. we placed 3rd with our speed... 
-
 # Bob (Best Of the Best) — Our COGS 300 Autonomous Robot
  
 > *"we built the chinese ev version of our robot"* — me, the morning of the tournament
